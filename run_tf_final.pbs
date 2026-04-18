@@ -1,0 +1,17 @@
+#!/bin/bash
+#PBS -q parallel
+#PBS -l select=1:ncpus=24:mem=96gb
+#PBS -l walltime=10:00:00
+#PBS -N LOGO_TF_Final
+#PBS -j oe
+
+cd /home/svu/e1538285/LOGO/01_Pre-training_Model
+module load miniconda/4.9
+source activate logo
+
+# 使用我们优化后的 01 脚本，数据读入和写出都非常安全
+python 01_generate_DNA_refseq_tfrecord.py \
+  --data ../data/hg19/train_5_gram \
+  --output /hpctmp/e1538285/LOGO_tfrecords \
+  --ngram 5 \
+  --pool-size 12

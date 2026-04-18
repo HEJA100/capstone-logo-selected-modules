@@ -1,0 +1,22 @@
+#!/bin/bash
+#PBS -N tB_ngram6_test
+#PBS -l select=1:ncpus=8:mem=64gb
+#PBS -l walltime=04:00:00
+#PBS -q normal
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1538285/LOGO/03_LOGO_EPI/pbs_logs/tB_ngram6_test.log
+
+set -euo pipefail
+
+cd /scratch/users/nus/e1538285/LOGO/03_LOGO_EPI
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+mkdir -p tB/P-E/test
+cp -f tB/P-E/test_original/enhancer_Seq_5358.npz tB/P-E/test/
+cp -f tB/P-E/test_original/promoter_Seq_5358.npz tB/P-E/test/
+
+echo "START $(date)"
+hostname
+python -u 02_DataPrepare_Ngram.py tB test 6
+echo "END $(date)"

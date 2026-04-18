@@ -1,3 +1,0 @@
-46b4b96d89bc3df97a9bde0556e9ebb92d8573d7afabe7cbdb91fed81aabd41b  04_LOGO_Chromatin_Feature/2. result/0. demodata/demo_output.csv
-2f4cbfcfdb2c10a8ca9e5c62c3d407a157a0005b64ded770ac1f48e4af2d9aee  04_LOGO_Chromatin_Feature/2. result/0. demodata/extract_sigvar_demo.py
-ca7c527f2309a8bfb7a2e63631324a9e6b89a2b3412e223b73e80cf92e6b79f7  04_LOGO_Chromatin_Feature/2. result/0. demodata/demo_sig.csv

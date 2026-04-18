@@ -1,0 +1,11 @@
+#PBS -N bilstm_task
+#PBS -q normal
+#PBS -l select=1:ncpus=8:mem=32gb:ngpus=1
+#PBS -l walltime=08:00:00
+
+cd ~/scratch/LOGO
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+export PYTHONPATH=$PWD:$PYTHONPATH
+
+python 02_LOGO_Promoter/04_BiLSTM_baseline_task.py "$TASK" > "02_LOGO_Promoter/bilstm_${TASK}.log" 2>&1

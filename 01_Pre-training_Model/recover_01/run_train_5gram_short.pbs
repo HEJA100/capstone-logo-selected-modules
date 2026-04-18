@@ -1,0 +1,33 @@
+#!/bin/bash
+#PBS -N logo01_tr5g
+#PBS -l select=1:ncpus=8:ngpus=1:mem=64gb
+#PBS -l walltime=06:00:00
+#PBS -j oe
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/01_Pre-training_Model/recover_01/logs/logo01_tr5g.$PBS_JOBID.log
+
+cd /home/users/nus/e1538285/scratch/LOGO/01_Pre-training_Model
+
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+echo "START: $(date)"
+nvidia-smi || true
+
+/usr/bin/time -v python 02_train_gene_transformer_lm_hg_bert4keras_tfrecord.py \
+  --save /home/users/nus/e1538285/scratch/LOGO/data/pretrain_recover_5gram_short \
+  --train-data /home/users/nus/e1538285/scratch/LOGO/TFRecord_Storage \
+  --seq-len 1000 \
+  --model-dim 256 \
+  --transformer-depth 2 \
+  --num-heads 8 \
+  --batch-size 32 \
+  --ngram 5 \
+  --stride 5 \
+  --model-name genebert_5_gram_short \
+  --steps-per-epoch 50 \
+  --epochs 3 \
+  --shuffle-size 256 \
+  --num-gpu 1 \
+  --verbose 1
+
+echo "END: $(date)"

@@ -1,0 +1,20 @@
+#!/bin/bash
+#PBS -N LOGO_Step3_tB_Train
+#PBS -l select=1:ncpus=4:mem=64gb
+#PBS -l walltime=04:00:00
+#PBS -q normal
+#PBS -o 02_ngram_tB_out.log
+#PBS -e 02_ngram_tB_err.log
+
+cd $PBS_O_WORKDIR
+source activate logo
+
+echo "=========================================================="
+echo "Generating 6-gram for tB (TRAIN) on Compute Node..."
+echo "=========================================================="
+
+python 02_DataPrepare_Ngram.py tB train
+
+echo "=========================================================="
+echo "Finished at $(date)"
+echo "=========================================================="

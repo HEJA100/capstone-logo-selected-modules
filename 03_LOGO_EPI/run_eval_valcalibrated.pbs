@@ -1,0 +1,24 @@
+#!/bin/bash
+#PBS -N LOGO_Eval_ValCal
+#PBS -l select=1:ncpus=16:mem=110gb:ngpus=1
+#PBS -l walltime=08:00:00
+#PBS -q normal
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/03_LOGO_EPI/optimization_all_celltypes/val_threshold_logs/eval_valcal_out.log
+#PBS -e /home/users/nus/e1538285/scratch/LOGO/03_LOGO_EPI/optimization_all_celltypes/val_threshold_logs/eval_valcal_err.log
+
+set -euo pipefail
+
+cd /home/users/nus/e1538285/scratch/LOGO/03_LOGO_EPI
+source activate logo
+
+echo "=========================================================="
+echo "Starting validation-calibrated evaluation at $(date)"
+echo "Node: $(hostname)"
+echo "=========================================================="
+
+nvidia-smi
+python 05_evaluate_valcalibrated.py
+
+echo "=========================================================="
+echo "Finished at $(date)"
+echo "=========================================================="

@@ -1,0 +1,45 @@
+#!/bin/bash
+#PBS -N logo919_testset
+#PBS -l select=1:ncpus=8:ngpus=1:mem=64gb
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/logs/logo919_testset.log
+
+set -euo pipefail
+
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+cd /home/users/nus/e1538285/scratch/LOGO
+export PYTHONPATH=/home/users/nus/e1538285/scratch/LOGO:${PYTHONPATH:-}
+
+CAND="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/metrics/logo919_test_candidates.txt"
+OUTDIR="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/metrics/test_logs"
+mkdir -p "$OUTDIR"
+
+while read -r W; do
+  [ -z "$W" ] && continue
+  B=$(basename "$W" .hdf5)
+  echo "=== TESTING: $W ==="
+
+  CUDA_VISIBLE_DEVICES=0 python "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/02_deep_sea_train_classification_tfrecord.py" \
+    --save "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/metrics" \
+    --weight-path "$W" \
+    --test-data "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/data/deepsea/DeepSEA_data/test_5_gram_990" \
+    --seq-len 990 \
+    --we-size 128 \
+    --model-dim 256 \
+    --transformer-depth 1 \
+    --num-heads 8 \
+    --batch-size 512 \
+    --ngram 5 \
+    --stride 1 \
+    --num-classes 919 \
+    --model-name "$B" \
+    --use-conv \
+    --use-position \
+    --class-prediction \
+    --pool-size 16 \
+    --task test \
+    > "$OUTDIR/${B}.test.log" 2>&1
+done < "$CAND"

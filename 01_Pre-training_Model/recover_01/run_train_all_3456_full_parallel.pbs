@@ -1,0 +1,77 @@
+#!/bin/bash
+#PBS -N logo01_full_3456
+#PBS -l select=1:ncpus=32:ngpus=4:mem=128gb
+#PBS -l walltime=120:00:00
+#PBS -j oe
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/01_Pre-training_Model/recover_01/logs/logo01_full_3456.$PBS_JOBID.log
+
+set -euo pipefail
+
+cd /home/users/nus/e1538285/scratch/LOGO/01_Pre-training_Model
+
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+# ========= 可改参数 =========
+EPOCHS=50
+STEPS_PER_EPOCH=4000
+BATCH_SIZE=256
+SHUFFLE_SIZE=4000
+# 如果你后面想更贴近论文方法部分，可尝试 512；
+# 但仓库现成训练脚本写的是 256，这里先用更稳的 256。
+# ==========================
+
+SAVE_ROOT=/home/users/nus/e1538285/scratch/LOGO/data/pretrain_full_runs
+LOG_ROOT=/home/users/nus/e1538285/scratch/LOGO/01_Pre-training_Model/recover_01/logs
+
+mkdir -p "${SAVE_ROOT}"/{3gram,4gram,5gram,6gram}
+mkdir -p "${LOG_ROOT}"
+
+echo "START MASTER: $(date)"
+hostname
+nvidia-smi || true
+
+run_one () {
+    GPU_ID="$1"
+    K="$2"
+    TRAIN_DATA="$3"
+    SAVE_DIR="$4"
+    MODEL_NAME="genebert_${K}_gram_full"
+
+    echo "[$(date)] Launching ${MODEL_NAME} on GPU ${GPU_ID}"
+
+    CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/bin/time -v \
+    python 02_train_gene_transformer_lm_hg_bert4keras_tfrecord.py \
+      --save "${SAVE_DIR}" \
+      --train-data "${TRAIN_DATA}" \
+      --seq-len 1000 \
+      --model-dim 256 \
+      --transformer-depth 2 \
+      --num-heads 8 \
+      --batch-size "${BATCH_SIZE}" \
+      --ngram "${K}" \
+      --stride "${K}" \
+      --model-name "${MODEL_NAME}" \
+      --steps-per-epoch "${STEPS_PER_EPOCH}" \
+      --epochs "${EPOCHS}" \
+      --shuffle-size "${SHUFFLE_SIZE}" \
+      --num-gpu 1 \
+      --verbose 1 \
+      > "${LOG_ROOT}/${MODEL_NAME}.log" 2>&1
+}
+
+run_one 0 3 /home/users/nus/e1538285/scratch/LOGO/data/hg19/train_3_gram_tfrecord /home/users/nus/e1538285/scratch/LOGO/data/pretrain_full_runs/3gram &
+PID3=$!
+
+run_one 1 4 /home/users/nus/e1538285/scratch/LOGO/data/hg19/train_4_gram_tfrecord /home/users/nus/e1538285/scratch/LOGO/data/pretrain_full_runs/4gram &
+PID4=$!
+
+run_one 2 5 /home/users/nus/e1538285/scratch/LOGO/TFRecord_Storage /home/users/nus/e1538285/scratch/LOGO/data/pretrain_full_runs/5gram &
+PID5=$!
+
+run_one 3 6 /home/users/nus/e1538285/scratch/LOGO/data/hg19/train_6_gram_tfrecord /home/users/nus/e1538285/scratch/LOGO/data/pretrain_full_runs/6gram &
+PID6=$!
+
+wait $PID3 $PID4 $PID5 $PID6
+
+echo "END MASTER: $(date)"

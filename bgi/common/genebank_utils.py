@@ -511,7 +511,7 @@ def get_refseq_gff(gff_file: str, include_types: list):
         df['end'] = pd.to_numeric(df['end'])
         df.sort_values(by=['start','end'], ascending=[True, True], inplace=True)
         df = df.values
-        data = np.vstack([np.array(df[:, 0], dtype=int), np.array(df[:, 1], dtype=int), df[:, 2]])
+        data = np.vstack([np.array(df[:, 0], dtype=np.int), np.array(df[:, 1], dtype=np.int), df[:, 2]])
         chr_gff_dict_3[k] = data
 
     return chr_gff_dict_3
@@ -1020,5 +1020,6 @@ if __name__ == '__main__':
     print('Running time: %s Seconds' % (end_t - start_t))
 
     print(243326134, 243327134, result)
+
 
 

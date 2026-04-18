@@ -1,0 +1,40 @@
+#!/bin/bash
+#PBS -N LOGO_Predict
+#PBS -l select=1:ncpus=10:ngpus=1:mem=96GB
+#PBS -q normal
+#PBS -l walltime=02:00:00
+#PBS -j oe
+#PBS -o predict_demo.log
+
+# 1. 进入预测主炮阵地
+cd "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_predict"
+
+# 2. 穿上专属战袍
+source /home/users/nus/e1538285/miniconda3/bin/activate logo
+export PYTHONPATH="/home/users/nus/e1538285/scratch/LOGO:$PYTHONPATH"
+
+# 3. 施展空城计：造一个假背景文件夹
+mkdir -p fake_background
+
+echo "=== 🚀 开始执行变异效应预测 (忽略最后的 e-value 报错) ==="
+
+# 4. 执行原作者的预测指令 (挂载 919 维度模型)
+python GeneBert_predict_vcf_slice_e8-512pos_new.py \
+  --inputfile demo.vcf \
+  --backgroundfile ./fake_background/ \
+  --reffasta Genomics/male.hg19.fasta \
+  --maxshift 0 \
+  --weight-path ./deepsea_5_gram_2_layer_8_heads_256_dim_weights_128-0.982105-0.983445.hdf5 \
+  --seq-len 1000 \
+  --model-dim 256 \
+  --transformer-depth 2 \
+  --num-heads 8 \
+  --batch-size 128 \
+  --num-classes 919 \
+  --shuffle-size 4000 \
+  --pool-size 10 \
+  --slice-size 5000 \
+  --ngram 5 \
+  --stride 1
+
+echo "=== 🎉 预测完成！ ==="

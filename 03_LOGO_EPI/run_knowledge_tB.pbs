@@ -1,0 +1,21 @@
+#!/bin/bash
+#PBS -N LOGO_Knowledge_tB
+#PBS -l select=1:ncpus=16:mem=110gb:ngpus=1
+#PBS -l walltime=06:00:00
+#PBS -q normal
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1538285/LOGO/03_LOGO_EPI/pbs_logs/knowledge_tB_out.log
+
+set -euo pipefail
+
+cd /scratch/users/nus/e1538285/LOGO/03_LOGO_EPI
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+echo "START $(date)"
+hostname
+nvidia-smi || true
+
+python -u 05_LOGO_EPI_train_conv1d_concat_atcg_gene_type.py tB
+
+echo "END $(date)"

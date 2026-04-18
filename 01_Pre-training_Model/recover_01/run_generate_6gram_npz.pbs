@@ -1,0 +1,27 @@
+#!/bin/bash
+#PBS -N logo01_gen3g
+#PBS -l select=1:ncpus=16:mem=128gb
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/01_Pre-training_Model/recover_01/logs/logo01_gen3g.$PBS_JOBID.log
+
+cd /home/users/nus/e1538285/scratch/LOGO/01_Pre-training_Model
+
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+echo "START: $(date)"
+
+/usr/bin/time -v python 00_generate_refseq_sequence.py \
+  --data /home/users/nus/e1538285/scratch/LOGO/data/hg19/GCF_000001405.25_GRCh37.p13_genomic.fna \
+  --output /home/users/nus/e1538285/scratch/LOGO/data/hg19/train_6_gram \
+  --chunk-size 10000 \
+  --seq-size 1000 \
+  --seq-stride 100 \
+  --ngram 6 \
+  --stride 1 \
+  --slice-size 100000 \
+  --hg-name hg19 \
+  --pool-size 16
+
+echo "END: $(date)"

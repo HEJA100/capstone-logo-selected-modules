@@ -482,7 +482,7 @@ def npz2record(x_data_,
 
         x_data = x_data_  # 一定要保证是(n, 2000)，ngram=3，stride=1之后也是2000
         print(x_data.shape)
-        y_data = np.zeros((x_data.shape[0], num_classes), np.bool_).astype(int) # 伪造数据
+        y_data = np.zeros((x_data.shape[0], num_classes), np.bool_).astype(np.int) # 伪造数据
         #print(y_data.shape)
 
         for ii in range(ngram):
@@ -646,11 +646,8 @@ if __name__ == '__main__':
         '--CUDA-VISIBLE-DEVICES', type=int, default=0, metavar='INTEGER',
         help='CUDA_VISIBLE_DEVICES')
     _argparser.add_argument(
-        '--num-classes', type=int, default=51, metavar='INTEGER',
+        '--num-classes', type=int, default=10, metavar='INTEGER',
         help='Number of total classes')
-    _argparser.add_argument(
-        '--max-position-embeddings', type=int, default=512, metavar='INTEGER',
-        help='Max position embeddings')
     _argparser.add_argument(
         '--vocab-size', type=int, default=20000, metavar='INTEGER',
         help='Number of vocab')
@@ -709,12 +706,6 @@ if __name__ == '__main__':
     _argparser.add_argument(
         '--pool-size', type=int, default=16, metavar='INTEGER',
         help='Pool size of multi-thread')
-    _argparser.add_argument(
-        '--max-variants', type=int, default=None, metavar='INTEGER',
-        help='Limit number of variants')
-    _argparser.add_argument(
-        '--max-position', type=int, default=None, metavar='INTEGER',
-        help='Filter variants by max position')
 
     _args = _argparser.parse_args()
 
@@ -734,19 +725,12 @@ if __name__ == '__main__':
     stride = _args.stride
 
     word_from_index = 3
-    word_dict = get_word_dict_for_n_gram_number(word_index_from=word_from_index, n_gram=ngram)
+    word_dict = get_word_dict_for_n_gram_number(n_gram=ngram)
 
     num_classes = _args.num_classes
     only_one_slice = True
-    max_word_index = max(word_dict.values()) + 1 if len(word_dict) > 0 else word_from_index + 1
-    vocab_size = _args.vocab_size if _args.vocab_size is not None else max_word_index
-    if vocab_size <= max_word_index:
-        filtered_keys = [k for k in word_dict.keys() if len(str(k)) == ngram]
-        filtered_keys.sort()
-        word_dict = {k: word_from_index + i for i, k in enumerate(filtered_keys)}
-        max_word_index = max(word_dict.values()) + 1 if len(word_dict) > 0 else word_from_index + 1
-        vocab_size = max(vocab_size, max_word_index)
-    print("vocab_size:", vocab_size, "max_word_index:", max_word_index)
+    # vocab_size = len(word_dict) + word_from_index
+    vocab_size = len(word_dict) + word_from_index + 10
 
 
     slice_size = _args.slice_size
@@ -756,9 +740,6 @@ if __name__ == '__main__':
     model_dim = _args.model_dim
     embedding_size = _args.we_size
     num_heads = _args.num_heads
-    max_position_embeddings = _args.max_position_embeddings
-    if max_seq_len > max_position_embeddings:
-        raise ValueError("seq_len exceeds max_position_embeddings")
 
     shuffle_size = _args.shuffle_size
     num_parallel_calls = _args.num_parallel_calls
@@ -783,7 +764,7 @@ if __name__ == '__main__':
             "hidden_size": model_dim,
             "initializer_range": 0.02,
             "intermediate_size": model_dim * 4,
-            "max_position_embeddings": max_position_embeddings,
+            "max_position_embeddings": 1024,
             "num_attention_heads": num_heads,
             "num_hidden_layers": max_depth,
             "num_hidden_groups": 1,
@@ -802,7 +783,6 @@ if __name__ == '__main__':
             model='albert',
             return_keras_model=False,
         )
-        print("max_position_embeddings:", max_position_embeddings)
 
         output = Lambda(lambda x: x[:, 0], name='CLS-token')(bert.model.output)
         output = Dense(
@@ -820,7 +800,7 @@ if __name__ == '__main__':
     with strategy.scope():
         pretrain_weight_path = _args.weight_path
         if pretrain_weight_path is not None and len(pretrain_weight_path) > 0:
-            albert.load_weights(pretrain_weight_path, by_name=True, skip_mismatch=True)
+            albert.load_weights(pretrain_weight_path, by_name=True)
             print("Load weights: ", pretrain_weight_path)
 
 
@@ -916,10 +896,6 @@ if __name__ == '__main__':
     vcf = vcf[vcf.iloc[:, 0].isin(CHRS)]   #判断输入的VCF文件是否都符合条件
     vcf.columns = ['chr','pos','name','ref','alt']+list(vcf.columns[5:])     # 修改了对vcf的修改，支持info的输出
     vcf.pos=vcf.pos.astype(int)
-    if _args.max_position is not None:
-        vcf = vcf[vcf.pos <= _args.max_position]
-    if _args.max_variants is not None:
-        vcf = vcf.head(_args.max_variants)
     #vcf = vcf[:10]
     print('VCF file shape is : \n', vcf.shape)
     #vcf
@@ -1136,8 +1112,6 @@ if __name__ == '__main__':
                 pkl_filelist.append(item)
         print("pkl_filelist length is :", len(pkl_filelist))
         # 对每一列计算evalue
-        if len(pkl_dict) != num_classes:
-            print("background classes mismatch:", len(pkl_dict), "expected:", num_classes)
         for i in range(num_classes):
             tem_background_pkl = pkl_dict[str(i)]      # get pkl file
             tem_background_pkl = os.path.join(json_pkl_path, tem_background_pkl)

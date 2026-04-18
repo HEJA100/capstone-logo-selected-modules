@@ -79,6 +79,17 @@ def load_npz_data(data_path, prefix='', ngram=3, reshape=True, NUM_SEQ=4, masked
     num_word_dict = get_word_dict_for_n_gram_number(n_gram=ngram)
 
     files = os.listdir(data_path)
+
+    def _file_key(name):
+        # 例如 enhancer_Seq_50001.npz -> 50001
+        stem = str(name).replace('.npz', '')
+        try:
+            return int(stem.split('_')[-1])
+        except Exception:
+            return 10**18
+
+    files = sorted(files, key=_file_key)
+
     for file_name in files:
         print(file_name)
         if str(file_name).startswith(prefix) and str(file_name).endswith('.npz'):
@@ -124,13 +135,18 @@ def load_npz_data(data_path, prefix='', ngram=3, reshape=True, NUM_SEQ=4, masked
 
 
 def main():
-    CELL = 'tB'
+    if len(sys.argv) < 3:
+        print('[USAGE] python 02_DataPrepare_Ngram.py cell task [ngram]')
+        sys.exit()
+    
+    CELL = sys.argv[1]
     TYPE = 'P-E'
+    task = sys.argv[2]  # train 或 test
+    
+    # 如果你在终端传了第3个参数就用它，否则默认用作者的 6
+    ngram = int(sys.argv[3]) if len(sys.argv) >= 4 else 6
 
-    ngram = 6
 
-
-    task = 'test'
     ## load data: sequence
     if task == 'train':
         seq_data_path = CELL + '/' + TYPE + '/{}_gram/'.format(str(ngram))

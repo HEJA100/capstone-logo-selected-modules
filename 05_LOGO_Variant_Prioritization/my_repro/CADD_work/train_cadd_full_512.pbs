@@ -1,0 +1,15 @@
+#!/bin/bash
+#PBS -N CADD_Full_Train512
+#PBS -l select=1:ncpus=12:ngpus=1:mem=96GB
+#PBS -q normal
+#PBS -l walltime=12:00:00
+#PBS -j oe
+#PBS -o train_cadd_full_512.log
+
+set -euo pipefail
+
+cd "/home/users/nus/e1538285/scratch/LOGO/05_LOGO_Variant_Prioritization/my_repro/CADD_work"
+source /home/users/nus/e1538285/miniconda3/bin/activate logo
+export PYTHONPATH="/home/users/nus/e1538285/scratch/LOGO${PYTHONPATH:+:$PYTHONPATH}"
+
+python 06_cadd_train_full_512.py

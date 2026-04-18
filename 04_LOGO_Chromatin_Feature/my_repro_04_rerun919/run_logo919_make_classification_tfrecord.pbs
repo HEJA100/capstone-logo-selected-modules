@@ -1,0 +1,47 @@
+#!/bin/bash
+#PBS -N logo919_mktf
+#PBS -l select=1:ncpus=16:mem=128gb
+#PBS -l walltime=12:00:00
+#PBS -j oe
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/logs/logo919_mktf.$PBS_JOBID.log
+
+set -euo pipefail
+
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+cd /home/users/nus/e1538285/scratch/LOGO
+export PYTHONPATH=/home/users/nus/e1538285/scratch/LOGO:${PYTHONPATH:-}
+
+echo "START: $(date)"
+hostname
+python -V
+
+python "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/01_deepsea_tfrecord_utils.py" \
+  --data "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/data/deepsea/DeepSEA_data/train_5_gram" \
+  --output "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/classification_tfrecord/train_5_gram_classification_tfrecord_990" \
+  --ngram 5 \
+  --stride 1 \
+  --slice 200000 \
+  --pool-size 16 \
+  --task classification
+
+python "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/01_deepsea_tfrecord_utils.py" \
+  --data "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/data/deepsea/DeepSEA_data/test_5_gram" \
+  --output "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/classification_tfrecord/test_5_gram_classification_tfrecord_990" \
+  --ngram 5 \
+  --stride 1 \
+  --slice 200000 \
+  --pool-size 16 \
+  --task classification
+
+python "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/01_deepsea_tfrecord_utils.py" \
+  --data "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/data/deepsea/DeepSEA_data/valid_5_gram" \
+  --output "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/classification_tfrecord/valid_5_gram_classification_tfrecord_990" \
+  --ngram 5 \
+  --stride 1 \
+  --slice 200000 \
+  --pool-size 16 \
+  --task classification
+
+echo "END: $(date)"

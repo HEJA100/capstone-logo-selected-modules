@@ -1,0 +1,12 @@
+#!/bin/bash
+#PBS -N prep_EPDnew
+#PBS -q parallel
+#PBS -l select=1:ncpus=16:mem=128gb
+#PBS -l walltime=04:00:00
+#PBS -j oe
+#PBS -o prep_EPDnew.log
+
+cd $PBS_O_WORKDIR
+
+# 直接使用你成功安装了 pyfaidx 的 Python 绝对路径
+/home/svu/e1538285/.conda/miniconda/4.9/envs/logo/bin/python 00_EPDnew_data_prepare.py

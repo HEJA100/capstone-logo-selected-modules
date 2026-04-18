@@ -1,2 +1,0 @@
-ca7c527f2309a8bfb7a2e63631324a9e6b89a2b3412e223b73e80cf92e6b79f7  04_LOGO_Chromatin_Feature/2. result/0. demodata/demo_sig.csv
-e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  04_LOGO_Chromatin_Feature/2. result/0. demodata/extract_sigvar_demo.log

@@ -1,0 +1,48 @@
+#!/bin/bash
+#PBS -N LOGO_Parallel_Prep
+#PBS -l select=1:ncpus=16:mem=100gb
+#PBS -l walltime=08:00:00
+#PBS -q normal
+#PBS -o 00_dataprep_out.log
+#PBS -e 00_dataprep_err.log
+
+cd $PBS_O_WORKDIR
+source activate logo
+
+# 开启“一旦报错立即停止”模式，防止产生多余僵尸进程
+set -e
+
+echo "=========================================================="
+echo "Parallel Data Processing Started at $(date)"
+echo "=========================================================="
+
+# 定义函数：处理单个细胞系的 train 和 test
+process_cell() {
+    local cell=$1
+    echo "[$(date)] Starting $cell..."
+    python 00_DataPrepare.py "$cell" P-E train >> "${cell}_prep.log" 2>&1
+    python 00_DataPrepare.py "$cell" P-E test >> "${cell}_prep.log" 2>&1
+    echo "[$(date)] Finished $cell."
+}
+
+# 第一组并行：处理前 3 个细胞系
+process_cell "tB" &
+process_cell "Mon" &
+process_cell "FoeT" &
+
+# 等待第一组全部完成
+wait
+
+echo "--- First batch finished. Starting second batch... ---"
+
+# 第二组并行：处理剩下的 3 个细胞系
+process_cell "tCD4" &
+process_cell "nCD4" &
+process_cell "tCD8" &
+
+# 等待第二组全部完成
+wait
+
+echo "=========================================================="
+echo "All Parallel Tasks Completed at $(date)"
+echo "=========================================================="

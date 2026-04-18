@@ -615,7 +615,7 @@ def npz2record(x_data_,
 
         x_data = x_data_  # 一定要保证是(n, 2000)，ngram=3，stride=1之后也是2000
         print(x_data.shape)
-        y_data = np.zeros((x_data.shape[0], num_classes), np.bool_).astype(int)  # 伪造数据
+        y_data = np.zeros((x_data.shape[0], num_classes), np.bool_).astype(np.int)  # 伪造数据
         # print(y_data.shape)
 
         for ii in range(ngram):

@@ -1,0 +1,18 @@
+#!/bin/bash
+#PBS -N train_LOGO_Kno
+#PBS -P personal-e1538285
+#PBS -q normal
+#PBS -l select=1:ncpus=16:ngpus=1:mem=110gb
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -o train_knowledge_nscc.log
+
+cd $PBS_O_WORKDIR
+source ~/.bashrc
+conda activate logo
+
+# 习惯性防御：确保环境依赖稳如泰山
+pip install --no-cache-dir numpy==1.19.5 "protobuf<3.20" matplotlib==3.3.4 scikit-learn==1.0.2 biopython pandas
+
+# 核心战术：-u 强行关闭缓冲，让你能实时追踪进度！
+python -u 02_PromID_trainer_knowledge.py

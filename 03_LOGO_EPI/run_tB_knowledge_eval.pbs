@@ -1,0 +1,55 @@
+#!/bin/bash
+#PBS -N tB_kn_eval
+#PBS -l select=1:ncpus=8:mem=64gb:ngpus=1
+#PBS -l walltime=04:00:00
+#PBS -q normal
+#PBS -j oe
+#PBS -o /scratch/users/nus/e1538285/LOGO/03_LOGO_EPI/pbs_logs/tB_knowledge_eval.log
+
+set -euo pipefail
+
+cd /scratch/users/nus/e1538285/LOGO/03_LOGO_EPI
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+export PYTHONPATH=/scratch/users/nus/e1538285/LOGO:${PYTHONPATH:-}
+
+echo "START $(date)"
+hostname
+nvidia-smi || true
+
+python - <<'PY'
+import os
+import sys
+import importlib.util
+
+ROOT = "/scratch/users/nus/e1538285/LOGO"
+WORK = "/scratch/users/nus/e1538285/LOGO/03_LOGO_EPI"
+
+sys.path.insert(0, ROOT)
+os.chdir(WORK)
+
+from bgi.common.refseq_utils import get_word_dict_for_n_gram_number
+
+spec = importlib.util.spec_from_file_location(
+    "logo_epi_knowledge",
+    "/scratch/users/nus/e1538285/LOGO/03_LOGO_EPI/05_LOGO_EPI_train_conv1d_concat_atcg_gene_type.py"
+)
+mod = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(mod)
+
+ngram = 6
+word_dict = get_word_dict_for_n_gram_number(n_gram=ngram)
+mod.vocab_size = len(word_dict) + 10
+
+mod.evaluate(
+    CELL="tB",
+    TYPE="P-E",
+    NUM_ENSEMBL=10,
+    ngram=6,
+    batch_size=128,
+    annotation_size=11
+)
+PY
+
+echo "END $(date)"

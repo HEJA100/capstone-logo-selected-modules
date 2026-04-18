@@ -1,0 +1,41 @@
+#!/bin/bash
+#PBS -N LOGO_All_Cells_Pipeline
+#PBS -l select=1:ncpus=16:mem=110gb:ngpus=1
+#PBS -l walltime=10:00:00
+#PBS -q normal
+#PBS -o final_pipeline_out.log
+#PBS -e final_pipeline_err.log
+
+cd $PBS_O_WORKDIR
+source activate logo
+
+# 定义剩下的 3 个细胞系
+CELLS=("nCD4" "tCD4" "tCD8")
+
+echo "=========================================================="
+echo "Starting FULL PIPELINE at $(date)"
+echo "Node: $(hostname)"
+echo "=========================================================="
+nvidia-smi
+
+for CELL in "${CELLS[@]}"; do
+    echo "=========================================================="
+    echo ">>>>> Processing Cell Line: $CELL <<<<<"
+    echo "=========================================================="
+    
+    # 步骤 1: 准备 6-gram 训练集数据
+    echo "[$(date)] Running Data Prep (Step 3) for $CELL ..."
+    python 02_DataPrepare_Ngram.py $CELL train
+    
+    # 步骤 2: 训练 10-fold 并自动评估 (Step 4)
+    # 提醒：请确保你的 04 代码里 train_kfold 的注释已经被取消了，
+    # 即同时开启 train_kfold 和 evaluate，这样才能边训边评。
+    echo "[$(date)] Running Training & Evaluation (Step 4) for $CELL ..."
+    python 04_LOGO_EPI_train_conv1d_concat_atcg.py $CELL
+    
+    echo "[$(date)] Finished $CELL !"
+done
+
+echo "=========================================================="
+echo "ALL FINISHED AT $(date)!"
+echo "=========================================================="

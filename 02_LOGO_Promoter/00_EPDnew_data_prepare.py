@@ -258,7 +258,7 @@ def process_raw_text_with_annotation(sequences,
 
         # Sequence annotation information
         anno_len = len(anno)
-        anno_position = np.zeros((len(gene_type_dict.keys()) + 2, seq_size), dtype=int)
+        anno_position = np.zeros((len(gene_type_dict.keys()) + 2, seq_size), dtype=np.int)
         if anno_len > 0:
             for jj in range(anno_len):
                 gene_type = anno[jj][0]
@@ -359,7 +359,7 @@ def get_epdnew_data_with_annotation(fasta_file: str,
 
     print(promoter_df.head())
 
-    gff_file = 'data/hg38/GCF_000001405.39_GRCh38.p13_genomic.gff'
+    ## gff_file = 'data/hg38/GCF_000001405.39_GRCh38.p13_genomic.gff'
 
     # Annotate the signature file
     chr_gff_dict = get_refseq_gff(gff_file, include_types)
@@ -421,7 +421,7 @@ def get_epdnew_data_with_annotation(fasta_file: str,
 if __name__ == '__main__':
 
     # Download from https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.39_GRCh38.p13/GCF_000001405.39_GRCh38.p13_genomic.gff.gz
-    gff_file = '/data/hg38/GCF_000001405.39_GRCh38.p13_genomic.gff'
+    gff_file = '../data/hg38/GCF_000001405.39_GRCh38.p13_genomic.gff'
 
     ngram = 5
     stride = 1
@@ -447,12 +447,9 @@ if __name__ == '__main__':
         index += 1
 
     for fasta_file, bed_file, task_name in zip(fasta_files, bed_files, task_names):
-
+        sequences, annotations, labels = get_epdnew_data_with_annotation(fasta_file, bed_file, gff_file, ngram=ngram)
         print("sequences: ", sequences[:10])
         print("labels: ", labels[:10])
-
-        sequences, annotations, labels = get_epdnew_data_with_annotation(fasta_file, bed_file, gff_file, ngram=ngram)
-
         process_raw_text_with_annotation(sequences,
                                          annotations,
                                          labels,

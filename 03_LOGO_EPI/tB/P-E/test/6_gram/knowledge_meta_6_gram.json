@@ -1,0 +1,20 @@
+{
+  "cell": "tB",
+  "split": "test",
+  "ngram": 6,
+  "annotation_types": [
+    "CDS",
+    "exon",
+    "enhancer",
+    "insulator",
+    "conserved_region",
+    "protein_binding_site",
+    "pseudogene",
+    "DNAseI_hypersensitive_site",
+    "nucleotide_cleavage_site",
+    "silencer",
+    "gene"
+  ],
+  "pairs_path": "tB/P-E/test/pairs_test.retained.csv",
+  "gff_path": "/scratch/users/nus/e1538285/LOGO/data/hg38/GCF_000001405.39_GRCh38.p13_genomic.gff"
+}

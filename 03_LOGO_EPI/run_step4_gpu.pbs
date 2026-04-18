@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -N LOGO_Step4_Train
+#PBS -l select=1:ncpus=16:mem=110gb:ngpus=1
+#PBS -l walltime=24:00:00
+#PBS -q normal
+#PBS -o 04_train_out.log
+#PBS -e 04_train_err.log
+
+cd $PBS_O_WORKDIR
+source activate logo
+
+echo "=========================================================="
+echo "Starting LOGO Model Training (Step 4) on GPU at $(date)"
+echo "Node: $(hostname)"
+echo "=========================================================="
+
+# 检查系统分配的 A100 状态
+nvidia-smi
+
+# 只跑 tB 试试水
+python 04_LOGO_EPI_train_conv1d_concat_atcg.py tB
+
+echo "=========================================================="
+echo "Training finished at $(date)"
+echo "=========================================================="

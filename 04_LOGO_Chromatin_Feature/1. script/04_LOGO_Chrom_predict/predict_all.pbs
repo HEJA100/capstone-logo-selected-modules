@@ -1,0 +1,51 @@
+#!/bin/bash
+#PBS -N LOGO_Predict_All
+#PBS -l select=1:ncpus=10:ngpus=1:mem=96GB
+#PBS -q normal
+#PBS -l walltime=04:00:00
+#PBS -j oe
+#PBS -o predict_all.log
+
+cd "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_predict"
+source /home/users/nus/e1538285/miniconda3/bin/activate logo
+export PYTHONPATH="/home/users/nus/e1538285/scratch/LOGO:$PYTHONPATH"
+
+echo "=== 🚀 开始执行 2002 种特征模型预测 ==="
+python GeneBert_predict_vcf_slice_e8.py \
+  --inputfile demo.vcf \
+  --backgroundfile ./fake_background/ \
+  --reffasta Genomics/male.hg19.fasta \
+  --maxshift 0 \
+  --weight-path ./genebert_5_gram_2_layer_8_heads_256_dim_expecto_[mat]_weights_134-0.9633-0.9671.hdf5 \
+  --seq-len 2000 \
+  --model-dim 256 \
+  --transformer-depth 2 \
+  --num-heads 8 \
+  --batch-size 128 \
+  --num-classes 2002 \
+  --shuffle-size 4000 \
+  --pool-size 25 \
+  --slice-size 5000 \
+  --ngram 5 \
+  --stride 1
+
+echo "=== 🚀 开始执行 3357 种特征模型预测 ==="
+python GeneBert_predict_vcf_slice_e8.py \
+  --inputfile demo.vcf \
+  --backgroundfile ./fake_background/ \
+  --reffasta Genomics/male.hg19.fasta \
+  --maxshift 0 \
+  --weight-path ./genebert_5_gram_2_layer_8_heads_256_dim_wanrenexp_tfrecord_5_1_[baseon27]_weights_119-0.9748-0.9765.hdf5 \
+  --seq-len 2000 \
+  --model-dim 256 \
+  --transformer-depth 2 \
+  --num-heads 8 \
+  --batch-size 128 \
+  --num-classes 3357 \
+  --shuffle-size 4000 \
+  --pool-size 20 \
+  --slice-size 5000 \
+  --ngram 5 \
+  --stride 1
+
+echo "=== 🎉 全部预测任务完成！ ==="

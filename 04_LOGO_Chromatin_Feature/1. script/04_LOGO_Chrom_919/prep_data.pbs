@@ -1,0 +1,56 @@
+#!/bin/bash
+#PBS -N LOGO_04_DataPrep_P2
+#PBS -l select=1:ncpus=24:mem=96GB
+#PBS -l walltime=12:00:00
+#PBS -q normal
+#PBS -j oe
+#PBS -o prep_data_p2.log
+
+# 1. 进入代码所在阵地
+cd "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919"
+
+# 2. 穿上专属战袍
+source /home/users/nus/e1538285/miniconda3/bin/activate logo
+
+# 3. 加入 Python 寻路雷达
+export PYTHONPATH="/home/users/nus/e1538285/scratch/LOGO:$PYTHONPATH"
+
+# 4. 定义数据路径
+DATA_PATH="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/data/deepsea/DeepSEA_data"
+
+# ======= Step 1 已经完美跑通，直接注释掉跳过！ =======
+# echo "=== 🚀 开始 Step 1: 转换 5-gram 序列 ==="
+# python 00_deepsea_data_loader.py ...
+# ====================================================
+
+echo "=== 🚀 开始 Step 2: 生成 TFRecord (Train) ==="
+python 01_deepsea_tfrecord_utils.py \
+  --data "$DATA_PATH/train_5_gram" \
+  --output "$DATA_PATH/train_5_gram_tfrecord" \
+  --ngram 5 \
+  --stride 1 \
+  --slice 200000 \
+  --pool-size 24 \
+  --task classification
+
+echo "=== 🚀 开始 Step 3: 生成 TFRecord (Test) ==="
+python 01_deepsea_tfrecord_utils.py \
+  --data "$DATA_PATH/test_5_gram" \
+  --output "$DATA_PATH/test_5_gram_tfrecord" \
+  --ngram 5 \
+  --stride 1 \
+  --slice 200000 \
+  --pool-size 24 \
+  --task classification
+
+echo "=== 🚀 开始 Step 4: 生成 TFRecord (Valid) ==="
+python 01_deepsea_tfrecord_utils.py \
+  --data "$DATA_PATH/valid_5_gram" \
+  --output "$DATA_PATH/valid_5_gram_tfrecord" \
+  --ngram 5 \
+  --stride 1 \
+  --slice 200000 \
+  --pool-size 24 \
+  --task classification
+
+echo "=== 🎉 全部数据预处理完成！ ==="

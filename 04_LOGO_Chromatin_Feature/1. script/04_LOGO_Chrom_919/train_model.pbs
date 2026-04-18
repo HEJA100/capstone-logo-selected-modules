@@ -1,0 +1,49 @@
+#!/bin/bash
+#PBS -N LOGO_04_DeepSEA_Train
+#PBS -l select=1:ncpus=10:ngpus=1:mem=96GB
+#PBS -q normal
+#PBS -l walltime=12:00:00
+#PBS -j oe
+#PBS -o train_deepsea.log
+
+# 1. 进入主炮阵地
+cd "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919"
+
+# 2. 穿上专属战袍
+source /home/users/nus/e1538285/miniconda3/bin/activate logo
+
+# 3. 开启 Python 寻路雷达
+export PYTHONPATH="/home/users/nus/e1538285/scratch/LOGO:$PYTHONPATH"
+
+# 4. 定义绝对坐标
+DATA_PATH="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/data/deepsea/DeepSEA_data"
+WEIGHT_PATH="/home/users/nus/e1538285/scratch/LOGO/99_PreTrain_Model_Weight/LOGO_5_gram_2_layer_8_heads_256_dim_weights_32-0.885107.hdf5"
+
+echo "=== 🚀 终极主炮开火：开始 DeepSEA 模型微调训练 ==="
+
+# 5. 执行发射指令 (参数已为你完美适配单卡 GPU 环境)
+python 02_deep_sea_train_classification_tfrecord.py \
+  --save ./ \
+  --weight-path "$WEIGHT_PATH" \
+  --train-data "$DATA_PATH/train_5_gram_tfrecord" \
+  --test-data "$DATA_PATH/test_5_gram_tfrecord" \
+  --valid-data "$DATA_PATH/valid_5_gram_tfrecord" \
+  --seq-len 1000 \
+  --we-size 128 \
+  --model-dim 256 \
+  --transformer-depth 1 \
+  --num-heads 8 \
+  --batch-size 128 \
+  --ngram 5 \
+  --stride 1 \
+  --num-classes 919 \
+  --model-name my_deepsea_5_gram_reproduce \
+  --steps-per-epoch 4000 \
+  --shuffle-size 4000 \
+  --use-conv \
+  --use-position \
+  --num-gpu 1 \
+  --verbose 1 \
+  --task train
+
+echo "=== 🎉 训练任务结束！ ==="

@@ -1,0 +1,22 @@
+#!/bin/bash
+#PBS -N LOGO_Eval_Balanced
+#PBS -l select=1:ncpus=16:mem=110gb:ngpus=1
+#PBS -l walltime=00:30:00
+#PBS -q normal
+#PBS -o eval_balanced_out.log
+#PBS -e eval_balanced_err.log
+
+cd $PBS_O_WORKDIR
+source activate logo
+
+echo "=========================================================="
+echo "Starting Balanced Evaluation at $(date)"
+echo "Node: $(hostname)"
+echo "=========================================================="
+
+# 运行我们刚刚写好的 1:1 测试集平衡与算分脚本
+python 05_evaluate_balanced.py
+
+echo "=========================================================="
+echo "ALL FINISHED AT $(date)!"
+echo "=========================================================="

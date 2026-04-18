@@ -1,0 +1,50 @@
+#!/bin/bash
+#PBS -N logo919_ft113
+#PBS -l select=1:ncpus=8:ngpus=1:mem=64gb
+#PBS -l walltime=16:00:00
+#PBS -j oe
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/optimize_best113_lr1e5/logs/logo919_ft113.log
+
+set -euo pipefail
+
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+cd /home/users/nus/e1538285/scratch/LOGO
+export PYTHONPATH=/home/users/nus/e1538285/scratch/LOGO:${PYTHONPATH:-}
+
+echo "START: $(date)"
+hostname
+nvidia-smi || true
+python -V
+
+PRETRAIN="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/optimize_best113_lr1e5/weights/seed_best113_val0.982237.hdf5"
+echo "PRETRAIN=$PRETRAIN"
+
+CUDA_VISIBLE_DEVICES=0 python "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_919/02_deep_sea_train_classification_tfrecord.py" \
+  --save "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/optimize_best113_lr1e5/weights" \
+  --weight-path "$PRETRAIN" \
+  --train-data "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/classification_tfrecord_990/train_5_gram_classification_tfrecord_990" \
+  --valid-data "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/classification_tfrecord_990/valid_5_gram_classification_tfrecord_990" \
+  --test-data "/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_rerun919/classification_tfrecord_990/test_5_gram_classification_tfrecord_990" \
+  --seq-len 990 \
+  --we-size 128 \
+  --model-dim 256 \
+  --transformer-depth 1 \
+  --num-heads 8 \
+  --batch-size 512 \
+  --ngram 5 \
+  --stride 1 \
+  --num-classes 919 \
+  --model-name deepsea_5_gram_2_layer_8_heads_256_dim_990_ft_best113_lr1e5 \
+  --steps-per-epoch 4000 \
+  --shuffle-size 4000 \
+  --epochs 15 \
+  --lr 1e-5 \
+  --use-conv \
+  --use-position \
+  --class-prediction \
+  --verbose 1 \
+  --task train
+
+echo "END: $(date)"

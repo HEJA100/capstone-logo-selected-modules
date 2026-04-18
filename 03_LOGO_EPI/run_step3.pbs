@@ -1,0 +1,39 @@
+#!/bin/bash
+#PBS -N LOGO_Step3_Ngram
+#PBS -l select=1:ncpus=4:mem=100gb
+#PBS -l walltime=8:00:00
+#PBS -q normal
+#PBS -o 02_ngram_out.log
+#PBS -e 02_ngram_err.log
+
+cd $PBS_O_WORKDIR
+source activate logo
+
+echo "=========================================================="
+echo "Starting LOGO N-gram Transformation (Step 3) at $(date)"
+echo "Warning: High RAM consumption expected. Running sequentially."
+echo "=========================================================="
+
+CELLS=("tB" "Mon" "FoeT" "tCD4" "nCD4" "tCD8")
+
+for cell in "${CELLS[@]}"; do
+    echo "------------------------------------------------------"
+    echo ">>> Generating 6-gram for: $cell"
+    
+    # 跑测试集
+    echo "[$(date)] Processing TEST data..."
+    python 02_DataPrepare_Ngram.py $cell test
+    
+    # 跑训练集
+    echo "[$(date)] Processing TRAIN data..."
+    python 02_DataPrepare_Ngram.py $cell train
+    
+    # 强制清理一波内存缓存
+    sync; echo 1 > /proc/sys/vm/drop_caches 2>/dev/null || true
+    
+    echo ">>> Finished $cell"
+done
+
+echo "=========================================================="
+echo "All 6-gram transformations completed at $(date)"
+echo "=========================================================="

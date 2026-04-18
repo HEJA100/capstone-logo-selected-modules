@@ -1,0 +1,38 @@
+#!/bin/bash
+#PBS -N logo3357
+#PBS -l select=1:ncpus=8:ngpus=1:mem=64gb
+#PBS -l walltime=48:00:00
+#PBS -j oe
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_predict_runs/logs/logo_predict_3357_fixed.log
+
+set -euo pipefail
+
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+
+ROOT="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_predict"
+cd "$ROOT"
+export PYTHONPATH=/home/users/nus/e1538285/scratch/LOGO:${PYTHONPATH:-}
+
+INPUT_VCF="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_predict/demo.vcf"
+BACKGROUND="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/2.background/2.3357mark_5gram"
+REFFA="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_predict/Genomics/male.hg19.fasta"
+WEIGHT="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_predict/genebert_5_gram_2_layer_8_heads_256_dim_wanrenexp_tfrecord_5_1_[baseon27]_weights_119-0.9748-0.9765.hdf5"
+
+python GeneBert_predict_vcf_slice_e8.py \
+  --inputfile "$INPUT_VCF" \
+  --backgroundfile "$BACKGROUND" \
+  --reffasta "$REFFA" \
+  --maxshift 0 \
+  --weight-path "$WEIGHT" \
+  --seq-len 2000 \
+  --model-dim 256 \
+  --transformer-depth 2 \
+  --num-heads 8 \
+  --batch-size 128 \
+  --num-classes 3357 \
+  --shuffle-size 4000 \
+  --pool-size 20 \
+  --slice-size 5000 \
+  --ngram 5 \
+  --stride 1

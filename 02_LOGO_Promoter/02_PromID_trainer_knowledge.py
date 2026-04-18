@@ -146,6 +146,12 @@ def load_all_data(record_names: list, ngram=3, only_one_slice=True, ngram_index=
 
 
 # @tf.function
+# ===== pretrain control =====
+USE_PRETRAIN = True
+PRETRAIN_PATH = '../99_PreTrain_Model_Weight/LOGO_5_gram_2_layer_8_heads_256_dim_weights_32-0.885107.hdf5'
+PRETRAIN_VOCAB_SIZE = 3138
+# 之后切到 full-run 更优权重时，只改 PRETRAIN_PATH 即可
+
 def load_npz_dataset_for_classification(x_promoter_data_all,
                                         annotation_data_all,
                                         y_data_all,
@@ -407,7 +413,16 @@ def train_kfold(train_data_file,
                  test=test)
 
         with strategy.scope():
-            model = model_def(vocab_size=vocab_size)
+            model_vocab_size = PRETRAIN_VOCAB_SIZE if USE_PRETRAIN else vocab_size
+            print(f'build model with vocab_size={model_vocab_size} (data vocab_size={vocab_size})')
+            model = model_def(vocab_size=model_vocab_size)
+
+            if USE_PRETRAIN:
+                print(f'loading pretrain weights from: {PRETRAIN_PATH}')
+                model.load_weights(PRETRAIN_PATH, by_name=True)
+            else:
+                print('USE_PRETRAIN = True, training from random initialization')
+
             print('compiling...')
             model.compile(loss='binary_crossentropy',
                           optimizer=tf.keras.optimizers.Adam(0.0001),
@@ -497,7 +512,16 @@ def train_kfold(train_data_file,
 
         # Make predictions and reload the optimal weights
         with strategy.scope():
-            model = model_def(vocab_size=vocab_size)
+            model_vocab_size = PRETRAIN_VOCAB_SIZE if USE_PRETRAIN else vocab_size
+            print(f'build model with vocab_size={model_vocab_size} (data vocab_size={vocab_size})')
+            model = model_def(vocab_size=model_vocab_size)
+
+            if USE_PRETRAIN:
+                print(f'loading pretrain weights from: {PRETRAIN_PATH}')
+                model.load_weights(PRETRAIN_PATH, by_name=True)
+            else:
+                print('USE_PRETRAIN = True, training from random initialization')
+
             print('compiling...')
             model.compile(loss='binary_crossentropy',
                           optimizer=tf.keras.optimizers.Adam(0.0001),
@@ -512,6 +536,7 @@ def train_kfold(train_data_file,
 
 
 if __name__ == '__main__':
+    import tensorflow.keras.backend as K  # 引入 Keras backend 用于清理显存
 
     # Dynamically allocate video memory
     gpus = tf.config.experimental.list_physical_devices(device_type='GPU')
@@ -523,36 +548,34 @@ if __name__ == '__main__':
     word_dict = get_word_dict_for_n_gram_number(n_gram=ngram)
     vocab_size = len(word_dict) + 10
 
-
-    # # BOTH
+    # ==================== 1. BOTH  ====================
     train_data_file = 'epdnew_BOTH_Knowledge_{}_gram.npz'.format(str(ngram))
     data_path = './data/' + '{}_gram_11_knowledge'.format(ngram)
     task_name = 'epdnew_BOTH_Knowledge'
+    annotation_size = 13
+    train_kfold(train_data_file=train_data_file, data_path=data_path, annotation_size=annotation_size,
+                batch_size=512, epochs=20, ngram=ngram, vocab_size=vocab_size, task_name=task_name)
+
+    # ==================== 2. TATA BOX ====================
+    K.clear_session() # 🛡️ 核心防御：彻底清空 BOTH 留下的 10 个模型的显存残留！
+    
+    train_data_file = 'epdnew_TATA_BOX_Knowledge_{}_gram.npz'.format(str(ngram))
+    data_path = './data/' + '{}_gram_11_knowledge'.format(ngram)
+    task_name = 'epdnew_TATA_BOX_Knowledge'
 
     annotation_size = 13
     train_kfold(train_data_file=train_data_file,
                 data_path=data_path,
                 annotation_size=annotation_size,
-                batch_size=128,
+                batch_size=128,  # ✅ 致命 Bug 修复：数据量太小，必须降回 128！(372 // 128 = 2步)
                 epochs=20,
+                ngram=ngram,
                 vocab_size=vocab_size,
                 task_name=task_name)
 
-    # TATA BOX
-    train_data_file = 'epdnew_TATA_BOX_Knowledge_6_gram.npz'
-    data_path = './data/' + '{}_gram'.format(ngram)
-    task_name = 'epdnew_TATA_BOX_Knowledge'
-
-    annotation_size = 11
-    train_kfold(train_data_file=train_data_file,
-                data_path=data_path,
-                annotation_size=annotation_size,
-                batch_size=128,
-                epochs=20,
-                vocab_size=vocab_size,
-                task_name=task_name)
-
-    # NO TATA BOX
+    # ==================== 3. NO TATA BOX ====================
+    K.clear_session() # 🛡️ 再次防御：跑完 TATA 后清理显存！
+    
     train_data_file = 'epdnew_NO_TATA_BOX_Knowledge_{}_gram.npz'.format(str(ngram))
     data_path = './data/' + '{}_gram_11_knowledge'.format(ngram)
     task_name = 'epdnew_NO_TATA_BOX_Knowledge'
@@ -561,8 +584,12 @@ if __name__ == '__main__':
     train_kfold(train_data_file=train_data_file,
                 data_path=data_path,
                 annotation_size=annotation_size,
-                batch_size=256,
+                batch_size=512,  # ✅ 数据量高达近 3 万条，用 512 绰绰有余，榨干它！
                 epochs=20,
+                ngram=ngram,
                 vocab_size=vocab_size,
                 task_name=task_name)
 
+    print("All tasks completed! Terminating process...")
+    import os
+    os._exit(0)

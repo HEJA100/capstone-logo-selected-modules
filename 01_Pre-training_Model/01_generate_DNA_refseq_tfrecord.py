@@ -97,6 +97,13 @@ def generate_samples(train_data,
     write_to_tfrecord(os.path.join(output_path, file_name), serialized_instances)
     print("Save: ", os.path.join(output_path, file_name))
 
+def load_data_worker(file_path, slice_indexes, *args):
+    """辅助函数：在子进程中读文件，避免主进程内存爆满"""
+    import numpy as np
+    # 只有子进程才会加载这 800MB 的数据
+    x_train = np.load(file_path)['data']
+    # 将切片后的数据和后续所有参数传给原作者的 generate_samples
+    generate_samples(x_train[:, slice_indexes], *args)
 
 def tfrecord_serialize(instances, instance_keys):
     """
@@ -178,36 +185,30 @@ def prepare_pretrain_data(train_data_path: str,
                           only_one_slice: bool = True,
                           ):
     files = os.listdir(train_data_path)
-
-    # Generate data in parallel
     pool = Pool(processes=pool_size)
-    results = []
-    for file_name in files:
 
+    for file_name in files:
         if str(file_name).endswith('.npz') is False:
             continue
+            
         train_file = os.path.join(train_data_path, file_name)
-        print("File: ", train_file)
-        loaded = np.load(train_file)
-        x_train = loaded['data']
-
-        tf_file_name = file_name.replace('.npz', '.tfrecord')
-        # Read all data
+        print("Prepare Task for File: ", train_file)
+        
+        # --- 注意：这里删掉了原本的 np.load(train_file) ---
+        
+        tf_file_name_base = file_name.replace('.npz', '.tfrecord')
         if only_one_slice is True:
-            # kk = random.randint(0, int(ngram) - 1)
             for kk in range(ngram):
-                slice_indexes = []
-                max_slice_seq_len = x_train.shape[1] // ngram * ngram
-                for gg in range(kk, max_slice_seq_len, ngram):
-                    slice_indexes.append(gg)
-
-                print("max_slice_seq_len: ", max_slice_seq_len, kk)
-                print("slice_indexes: ", len(slice_indexes))
-                suffix = '_{}.tfrecord'.format(str(kk))
-                tf_file_name = tf_file_name.replace('.tfrecord', suffix)
-
-                pool.apply_async(generate_samples,
-                                 args=(x_train[:, slice_indexes],
+                # 预先算好索引，但不在这里加载数据
+                max_slice_seq_len = 1000 // ngram * ngram # 这里的1000对应你的seq_size
+                slice_indexes = list(range(kk, max_slice_seq_len, ngram))
+                
+                current_tf_name = tf_file_name_base.replace('.tfrecord', f'_{kk}.tfrecord')
+                
+                # 改为调用我们的 load_data_worker
+                pool.apply_async(load_data_worker,
+                                 args=(train_file,
+                                       slice_indexes,
                                        first_token_id,
                                        last_token_id,
                                        CLS_ID,
@@ -218,29 +219,10 @@ def prepare_pretrain_data(train_data_path: str,
                                        shuffle,
                                        batch_size,
                                        output_path,
-                                       tf_file_name,
+                                       current_tf_name,
                                        ))
-                # results.append(result)
-
-        else:
-            pool.apply_async(generate_samples,
-                             args=(x_train,
-                                   first_token_id,
-                                   last_token_id,
-                                   CLS_ID,
-                                   MASK_ID,
-                                   PAD_ID,
-                                   word_from_index,
-                                   is_sep_mask,
-                                   shuffle,
-                                   batch_size,
-                                   output_path,
-                                   tf_file_name,
-                                   ))
-            # results.append(result)
     pool.close()
     pool.join()
-
 
 if __name__ == '__main__':
     _argparser = argparse.ArgumentParser(

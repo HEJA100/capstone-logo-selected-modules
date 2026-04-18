@@ -91,6 +91,11 @@ def load_all_data(record_names: list, ngram=3, only_one_slice=True, ngram_index=
 
 
 # @tf.function
+# ===== pretrain control =====
+USE_PRETRAIN = True
+PRETRAIN_PATH = '../99_PreTrain_Model_Weight/LOGO_5_gram_2_layer_8_heads_256_dim_weights_32-0.885107.hdf5'
+# 之后切到 full-run 更优权重时，只改 PRETRAIN_PATH 即可
+
 def load_npz_dataset_for_classification(x_promoter_data_all,
                                         y_data_all,
                                         promoter_seq_len,
@@ -210,10 +215,10 @@ def average_precision(y_true, y_pred):
     return precision
 
 
-def model_def(embedding_size=128,
-              hidden_size=128,
+def model_def(embedding_size=256,
+              hidden_size=256,
               num_heads=8,
-              num_hidden_layers=1,
+              num_hidden_layers=2,
               vocab_size=10000,
               drop_rate=0.25):
     config = {
@@ -223,8 +228,8 @@ def model_def(embedding_size=128,
         "embedding_size": embedding_size,
         "hidden_size": hidden_size,
         "initializer_range": 0.02,
-        "intermediate_size": 512,
-        "max_position_embeddings": 1024 * 2,
+        "intermediate_size": 1024,
+        "max_position_embeddings": 512,
         "num_attention_heads": num_heads,
         "num_hidden_layers": num_hidden_layers,
         "num_hidden_groups": 1,
@@ -268,7 +273,8 @@ def train_kfold(train_data_file,
                 task_name='epdnew_both'):
     # Distributed Training
     num_gpu = 1
-    strategy = tf.distribute.MirroredStrategy()
+    # strategy = tf.distribute.MirroredStrategy()
+    strategy = tf.distribute.get_strategy()  # 使用默认的单机/CPU策略
     print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
     if strategy.num_replicas_in_sync >= 1:
         num_gpu = strategy.num_replicas_in_sync
@@ -324,7 +330,14 @@ def train_kfold(train_data_file,
                  test=test)
 
         with strategy.scope():
-            model = model_def(vocab_size=vocab_size)
+            model = model_def(vocab_size=vocab_size, embedding_size=128, hidden_size=256, num_hidden_layers=2, num_heads=8)
+
+            if USE_PRETRAIN:
+                print(f'loading pretrain weights from: {PRETRAIN_PATH}')
+                model.load_weights(PRETRAIN_PATH, by_name=True)
+            else:
+                print('USE_PRETRAIN = True, training from random initialization')
+
             print('compiling...')
             model.compile(loss='binary_crossentropy',
                           optimizer=tf.keras.optimizers.Adam(0.0001),
@@ -406,7 +419,7 @@ def train_kfold(train_data_file,
 
         # Make predictions and reload the optimal weights
         with strategy.scope():
-            model = model_def(vocab_size=vocab_size)
+            model = model_def(vocab_size=vocab_size, embedding_size=128, hidden_size=256, num_hidden_layers=2, num_heads=8)
             print('compiling...')
             model.compile(loss='binary_crossentropy',
                           optimizer=tf.keras.optimizers.Adam(0.0001),
@@ -425,10 +438,10 @@ if __name__ == '__main__':
     for gpu in gpus:
         tf.config.experimental.set_memory_growth(gpu, True)
 
-    ngram = 3
+    ngram = 5
     stride = 1
     word_dict = get_word_dict_for_n_gram_number(n_gram=ngram)
-    vocab_size = len(word_dict) + 10
+    vocab_size = 3138
 
     # train_kfold(batch_size=128, epochs=20, vocab_size=vocab_size, task_name='epdnew_NO_TATA_BOX')
 
@@ -436,7 +449,7 @@ if __name__ == '__main__':
 
     # BOTH
     train_data_file = 'epdnew_BOTH_Knowledge_{}_gram.npz'.format(str(ngram))
-    data_path = './data/' + '{}_gram'.format(ngram)
+    data_path = './data/{}_gram_11_knowledge'.format(ngram)
     task_name = 'epdnew_BOTH'
 
     annotation_size = 11
@@ -444,12 +457,13 @@ if __name__ == '__main__':
                 data_path=data_path,
                 batch_size=256,
                 epochs=20,
+                ngram=ngram,
                 vocab_size=vocab_size,
                 task_name=task_name)
 
     # TATA BOX
     train_data_file = 'epdnew_TATA_BOX_Knowledge_{}_gram.npz'.format(str(ngram))
-    data_path = './data/' + '{}_gram'.format(ngram)
+    data_path = './data/{}_gram_11_knowledge'.format(ngram)
     task_name = 'epdnew_TATA_BOX'
 
     annotation_size = 11
@@ -457,12 +471,13 @@ if __name__ == '__main__':
                 data_path=data_path,
                 batch_size=256,
                 epochs=20,
+                ngram=ngram,
                 vocab_size=vocab_size,
                 task_name=task_name)
 
     # NO TATA BOX
     train_data_file = 'epdnew_NO_TATA_BOX_Knowledge_{}_gram.npz'.format(str(ngram))
-    data_path = './data/' + '{}_gram'.format(ngram)
+    data_path = './data/{}_gram_11_knowledge'.format(ngram)
     task_name = 'epdnew_NO_TATA_BOX'
 
     annotation_size = 11
@@ -470,5 +485,6 @@ if __name__ == '__main__':
                 data_path=data_path,
                 batch_size=256,
                 epochs=20,
+                ngram=ngram,
                 vocab_size=vocab_size,
                 task_name=task_name)

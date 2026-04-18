@@ -16,9 +16,13 @@ if len(sys.argv) < 3:
     print('[USAGE] python 00_DataPrepare.py cell interaction_type')  # py2改为py3
     print('For example, python 00_DataPrepare.py Mon P-E')
     sys.exit()
+# 修改后：
 CELL = sys.argv[1]
 TYPE = sys.argv[2]
-TASK = sys.argv[3]
+if len(sys.argv) >= 4:
+    TASK = sys.argv[3]
+else:
+    TASK = 'train' # 如果没给，默认做 train
 
 if TYPE == 'P-P':
     RESIZED_LEN = 1000  # promoter
@@ -97,26 +101,34 @@ def resize_location(original_location, resize_len):
 def augment():
     RESAMPLE_TIME = 20
     PROMOTER_LEN = 1000
-    fout = open(CELL + '/' + TYPE + '/pairs_train_augment.csv', 'w')
-    file = open(CELL + '/' + TYPE + '/pairs_train.csv')
-    for line in file:
-        line = line.strip().split(',')
-        if line[-1] != '1':
-            fout.write(','.join(line) + '\n')
-            continue
-        for j in range(0, RESAMPLE_TIME):
-            # Reshape the original sequence less than 2kbp into 2kbp length
-            original_location = (line[1], line[2])
-            resized_location = resize_location(original_location, RESIZED_LEN)  # enhancer 2kbp
-            fout.write(','.join([line[0], resized_location[0], resized_location[1], line[3]]) + ',')
+    in_path = CELL + '/' + TYPE + '/pairs_train.csv'
+    out_path = CELL + '/' + TYPE + '/pairs_train_augment.csv'
 
-            # Reshape the original sequence less than 2kbp into 2kbp length
-            original_location = (line[5], line[6])
-            resized_location = resize_location(original_location, PROMOTER_LEN)  # promoter 1kbp
-            fout.write(','.join([line[0], resized_location[0], resized_location[1], line[3]]) + ',1,\n')
-    print("Finished:", CELL + '/' + TYPE + '/pairs_train_augment.csv')
-    file.close()
-    fout.close()
+    with open(in_path, 'r') as fin, open(out_path, 'w') as fout:
+        header = fin.readline().strip()
+        fout.write(header + '\n')
+
+        for raw in fin:
+            line = raw.strip().split(',')
+            if len(line) < 9:
+                continue
+
+            if line[-1] != '1':
+                fout.write(','.join(line[:9]) + '\n')
+                continue
+
+            for _ in range(0, RESAMPLE_TIME):
+                enh_start, enh_end = resize_location((line[1], line[2]), RESIZED_LEN)
+                pro_start, pro_end = resize_location((line[5], line[6]), PROMOTER_LEN)
+
+                out_fields = [
+                    line[0], enh_start, enh_end, line[3],
+                    line[4], pro_start, pro_end, line[7],
+                    line[8],
+                ]
+                fout.write(','.join(out_fields) + '\n')
+
+    print("Finished:", out_path)
 
 
 def one_hot(sequence_dict, chrom, start, end, chr_convert_dict: dict = {}):
@@ -137,8 +149,15 @@ def one_hot(sequence_dict, chrom, start, end, chr_convert_dict: dict = {}):
 
 
 def encoding(sequence_dict, filename, PROMOTER_LEN=1000, NUM_SEQ=4, task: str = None):
-    file = open(CELL + '/' + TYPE + '/' + filename)
-    file.readline()
+    in_path = CELL + '/' + TYPE + '/' + filename
+    retained_path = CELL + '/' + TYPE + '/' + filename.replace('.csv', '.retained.csv')
+
+    file = open(in_path)
+    header = file.readline().strip()
+
+    retained_fout = open(retained_path, 'w')
+    retained_fout.write(header + '\n')
+
     seqs_1 = []
     seqs_2 = []
     label = []
@@ -149,12 +168,15 @@ def encoding(sequence_dict, filename, PROMOTER_LEN=1000, NUM_SEQ=4, task: str = 
 
     # Extract sequence one by one
     ii = 0
-    for line in tqdm(file):
-        if ii == 0:
-            ii += 1
+    for raw in tqdm(file):
+        raw = raw.strip()
+        if len(raw) == 0:
             continue
-
-        line = line.strip().split(',')
+        line = raw.split(',')
+        if len(line) == 10 and line[-1] == '':
+            line = line[:-1]
+        if len(line) < 9:
+            continue
 
         seq_1 = one_hot(sequence_dict, line[0], int(line[1]), int(line[2]), chr_convert_dict)
         seq_2 = one_hot(sequence_dict, line[4], int(line[5]), int(line[6]), chr_convert_dict)
@@ -174,8 +196,8 @@ def encoding(sequence_dict, filename, PROMOTER_LEN=1000, NUM_SEQ=4, task: str = 
 
         seqs_1.append(seq_1)  # Extract the first sequence (such as P)
         seqs_2.append(seq_2)  # Extract the second sequence (such as E)
+        retained_fout.write(','.join(line[:9]) + '\n')
 
-        # label.append(int(line[-1])) # The last one is label
         ii += 1
 
         if len(seqs_1) % 50000 == 0:
@@ -220,11 +242,23 @@ def encoding(sequence_dict, filename, PROMOTER_LEN=1000, NUM_SEQ=4, task: str = 
                  sequence=np.array(seqs_1))
         np.savez(CELL + '/' + TYPE + '/promoter_Seq_{}.npz'.format(str(ii)), label=np.array(label),
                  sequence=np.array(seqs_2))
+    retained_fout.close()
 
 
 def encoding_test(sequence_dict, filename, PROMOTER_LEN=1000, NUM_SEQ=4, task: str = None):
-    file = open(CELL + '/' + TYPE + '/' + filename)
-    file.readline()
+    in_path = CELL + '/' + TYPE + '/' + filename
+
+    if os.path.exists(CELL + '/' + TYPE + '/test/') is False:
+        os.makedirs(CELL + '/' + TYPE + '/test/')
+
+    retained_path = CELL + '/' + TYPE + '/test/' + filename.replace('.csv', '.retained.csv')
+
+    file = open(in_path)
+    header = file.readline().strip()
+
+    retained_fout = open(retained_path, 'w')
+    retained_fout.write(header + '\n')
+
     seqs_1 = []
     seqs_2 = []
     label = []
@@ -238,12 +272,15 @@ def encoding_test(sequence_dict, filename, PROMOTER_LEN=1000, NUM_SEQ=4, task: s
 
     # Extract sequence one by one
     ii = 0
-    for line in tqdm(file):
-        if ii == 0:
-            ii += 1
+    for raw in tqdm(file):
+        raw = raw.strip()
+        if len(raw) == 0:
             continue
-
-        line = line.strip().split(',')
+        line = raw.split(',')
+        if len(line) == 10 and line[-1] == '':
+            line = line[:-1]
+        if len(line) < 9:
+            continue
 
         seq_1 = one_hot(sequence_dict, line[0], int(line[1]), int(line[2]), chr_convert_dict)
         seq_2 = one_hot(sequence_dict, line[4], int(line[5]), int(line[6]), chr_convert_dict)
@@ -263,8 +300,8 @@ def encoding_test(sequence_dict, filename, PROMOTER_LEN=1000, NUM_SEQ=4, task: s
 
         seqs_1.append(seq_1)  # Extract the first sequence (such as P)
         seqs_2.append(seq_2)  # Extract the second sequence (such as E)
+        retained_fout.write(','.join(line[:9]) + '\n')
 
-        # label.append(int(line[-1]))  # The last one is label
         ii += 1
 
         if len(seqs_1) % 50000 == 0:
@@ -309,6 +346,7 @@ def encoding_test(sequence_dict, filename, PROMOTER_LEN=1000, NUM_SEQ=4, task: s
                  sequence=np.array(seqs_1))
         np.savez(CELL + '/' + TYPE + '/test/promoter_Seq_{}.npz'.format(str(ii)), label=np.array(label),
                  sequence=np.array(seqs_2))
+    retained_fout.close()
 
 
 def main():
@@ -322,14 +360,14 @@ def main():
         """One-hot encoding"""
         print("One-hot encoding")
 
-        reffasta = '/data/hg19/GCF_000001405.25_GRCh37.p13_genomic.fna'
+        reffasta = '../data/hg19/GCF_000001405.25_GRCh37.p13_genomic.fna'
         sequence_dict = SeqIO.to_dict(SeqIO.parse(open(reffasta), 'fasta'))
         # sequence_dict = SeqIO.to_dict(SeqIO.parse(open('E:/myP/ExPecto/resources/hg19.fa'), 'fasta'))
         encoding(sequence_dict, 'pairs_train_augment.csv')
         print("Finished!")
     else:
         print("One-hot encoding")
-        reffasta = '/data/hg19/GCF_000001405.25_GRCh37.p13_genomic.fna'
+        reffasta = '../data/hg19/GCF_000001405.25_GRCh37.p13_genomic.fna'
         sequence_dict = SeqIO.to_dict(SeqIO.parse(open(reffasta), 'fasta'))
         # sequence_dict = SeqIO.to_dict(SeqIO.parse(open('E:/myP/ExPecto/resources/hg19.fa'), 'fasta'))
         encoding_test(sequence_dict, 'pairs_test.csv')

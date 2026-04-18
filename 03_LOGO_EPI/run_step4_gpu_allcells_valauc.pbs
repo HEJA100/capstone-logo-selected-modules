@@ -1,0 +1,30 @@
+#!/bin/bash
+#PBS -N LOGO_Step4_Train_AllCells_ValAUC
+#PBS -l select=1:ncpus=16:mem=110gb:ngpus=1
+#PBS -l walltime=24:00:00
+#PBS -q normal
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/03_LOGO_EPI/optimization_all_celltypes/logs/04_train_valauc_out.log
+#PBS -e /home/users/nus/e1538285/scratch/LOGO/03_LOGO_EPI/optimization_all_celltypes/logs/04_train_valauc_err.log
+
+cd /home/users/nus/e1538285/scratch/LOGO/03_LOGO_EPI
+source activate logo
+
+echo "=========================================================="
+echo "Starting LOGO Model Training (all 6 cell types, val_auc) at $(date)"
+echo "Node: $(hostname)"
+echo "=========================================================="
+
+nvidia-smi
+
+CELLS=("tB" "FoeT" "Mon" "nCD4" "tCD4" "tCD8")
+
+for cell in "${CELLS[@]}"; do
+    echo "----------------------------------------------------------"
+    echo ">>> Training $cell with val_auc checkpoint selection"
+    python 04_LOGO_EPI_train_conv1d_concat_atcg_valauc.py "$cell"
+    echo ">>> Finished $cell at $(date)"
+done
+
+echo "=========================================================="
+echo "All 6 cell types finished at $(date)"
+echo "=========================================================="

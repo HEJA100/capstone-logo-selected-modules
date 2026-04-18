@@ -1,0 +1,25 @@
+#!/bin/bash
+#PBS -q parallel
+#PBS -l select=1:ncpus=12:mem=40gb:ngpus=4
+#PBS -l walltime=24:00:00
+#PBS -N LOGO_Train
+#PBS -j oe
+
+cd /home/svu/e1538285/LOGO/01_Pre-training_Model
+module load miniconda/4.9
+source activate logo
+
+# 指定使用 4 张显卡
+python 02_train_gene_transformer_lm_hg_bert4keras_tfrecord.py \
+  --save ../data \
+  --train-data /hpctmp/e1538285/LOGO_tfrecords \
+  --seq-len 1000 \
+  --model-dim 256 \
+  --transformer-depth 2 \
+  --num-heads 8 \
+  --batch-size 256 \
+  --ngram 5 \
+  --stride 5 \
+  --model-name genebert_5_gram_pretrain \
+  --steps-per-epoch 4000 \
+  --shuffle-size 4000

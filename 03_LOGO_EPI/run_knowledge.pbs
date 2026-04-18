@@ -1,0 +1,13 @@
+#!/bin/bash
+#PBS -N LOGO_Knowledge_tCD4
+#PBS -l select=1:ncpus=16:mem=110gb:ngpus=1
+#PBS -l walltime=04:00:00
+#PBS -q normal
+#PBS -o knowledge_out.log
+#PBS -e knowledge_err.log
+
+cd $PBS_O_WORKDIR
+source activate logo
+
+# 在命令后面加上 tCD4，脚本就会聪明地只跑这一个细胞系！
+python 05_LOGO_EPI_train_conv1d_concat_atcg_gene_type.py tCD4

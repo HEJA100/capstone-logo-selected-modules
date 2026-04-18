@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -N logo_predall
+#PBS -l select=1:ncpus=8:ngpus=1:mem=64gb
+#PBS -l walltime=48:00:00
+#PBS -j oe
+#PBS -o /home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/my_repro_04_predict_runs/logs/logo_predict_all.log
+
+set -euo pipefail
+source ~/miniconda3/etc/profile.d/conda.sh
+conda activate logo
+export PYTHONPATH=/home/users/nus/e1538285/scratch/LOGO:${PYTHONPATH:-}
+SCRIPT="/home/users/nus/e1538285/scratch/LOGO/04_LOGO_Chromatin_Feature/1. script/04_LOGO_Chrom_predict/run_GeneBert_919_2002_3357_3540.sh"
+cd "$(dirname "$SCRIPT")"
+bash "$(basename "$SCRIPT")"

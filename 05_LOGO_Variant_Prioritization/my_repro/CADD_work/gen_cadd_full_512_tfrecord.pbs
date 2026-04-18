@@ -1,0 +1,14 @@
+#!/bin/bash
+#PBS -N CADD_Full_TF512
+#PBS -l select=1:ncpus=24:mem=96GB
+#PBS -q normal
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -o gen_cadd_full_512_tfrecord.log
+
+set -euo pipefail
+
+cd "/home/users/nus/e1538285/scratch/LOGO/05_LOGO_Variant_Prioritization/my_repro/CADD_work"
+source /home/users/nus/e1538285/miniconda3/bin/activate logo
+
+python 01_cadd_indel_local_tfrecord_512_full.py

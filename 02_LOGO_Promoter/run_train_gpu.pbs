@@ -1,0 +1,12 @@
+#!/bin/bash
+#PBS -N train_LOGO_GPU
+#PBS -q gpu
+#PBS -l select=1:ncpus=6:ngpus=1
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -o train_promID_gpu.log
+
+cd $PBS_O_WORKDIR
+
+# 依然使用绝对路径
+/home/svu/e1538285/.conda/miniconda/4.9/envs/logo/bin/python 01_PromID_trainer.py

@@ -15,7 +15,7 @@ from tensorflow.keras.layers import Lambda, Dense, Layer
 import tensorflow.keras.backend as K
 from sklearn.model_selection import StratifiedKFold
 import numpy
-from sklearn import metrics
+import sklearn.metrics as sk_metrics
 
 sys.path.append("../")
 from bgi.bert4keras.models import build_transformer_model
@@ -203,7 +203,7 @@ def f1_score(y_true, y_pred):
 def auprc_score(y_true, y_pred):
     y_true = tf.cast(y_true, 'float')
     y_pred = tf.cast(y_pred, 'float')
-    auprc = tf.py_function(metrics.average_precision_score, (y_true, y_pred), tf.float64)
+    auprc = tf.py_function(sk_metrics.average_precision_score, (y_true, y_pred), tf.float64)
     return auprc
 
 
@@ -412,6 +412,8 @@ def train_kfold(CELL, TYPE,
         print(model_train_history)
         k_fold += 1
 
+        tf.keras.backend.clear_session()
+        print(f"Fold {k_fold-1} finished and session cleared.")
 
 def bagging_predict(label, bag_pred, bag_score):
     vote_pred = np.zeros(bag_pred.shape[1])
@@ -420,8 +422,8 @@ def bagging_predict(label, bag_pred, bag_score):
     for i in range(bag_pred.shape[1]):
         vote_pred[i] = stats.mode(bag_pred[:, i]).mode
         vote_score[i] = np.mean(bag_score[:, i])
-    f1 = metrics.f1_score(label, vote_pred)
-    auprc = metrics.average_precision_score(label, vote_score)
+    f1 = sk_metrics.f1_score(label, vote_pred)
+    auprc = sk_metrics.average_precision_score(label, vote_score)
     return f1, auprc
 
 # @tf.function
@@ -452,7 +454,7 @@ def evaluate(CELL, TYPE, NUM_ENSEMBL=1, ngram=6, batch_size=128, num_parallel_ca
                       optimizer=tf.keras.optimizers.Adam(lr=0.00001),
                       metrics=['acc', f1_score, tf.keras.metrics.AUC(), average_precision])
 
-        weight_path = CELL + '/' + TYPE + '/best_model_gene_bert_' + str(t) + '_epoch_05' +  '.h5'
+        weight_path = CELL + '/' + TYPE + '/best_model_gene_bert_' + str(t) + '.h5'
         if os.path.exists(weight_path):
             model.load_weights(weight_path)
             print("Loading: ", weight_path)
@@ -487,6 +489,8 @@ def evaluate(CELL, TYPE, NUM_ENSEMBL=1, ngram=6, batch_size=128, num_parallel_ca
         bag_pred[t, :] = (score > 0.5).astype(int).reshape(-1)
         bag_score[t, :] = score.reshape(-1)
 
+        tf.keras.backend.clear_session()
+        print(f"Model {t} evaluated and session cleared.")
 
     f1, auprc = bagging_predict(label, bag_pred, bag_score)
     print(f1, auprc)
@@ -509,7 +513,22 @@ if __name__ == '__main__':
 
     CELLs = ['tB', 'FoeT', 'Mon', 'nCD4', 'tCD4', 'tCD8']
     TYPE = 'P-E'
+    # 把原来的 for 循环替换为：
+    if len(sys.argv) > 1:
+        CELLs = [sys.argv[1]] # 从命令行接收细胞系，比如 python 04_xxx.py tB
+    else:
+        CELLs = ['tB', 'FoeT', 'Mon', 'nCD4', 'tCD4', 'tCD8']
+        
+    TYPE = 'P-E'
     for CELL in CELLs:
         train_kfold(CELL, TYPE, batch_size=128, epochs=10, vocab_size=vocab_size)
+        print(f"========== Evaluating {CELL} ==========")
+        evaluate(CELL, TYPE, NUM_ENSEMBL=10, ngram=6, batch_size=128)
+    
+    import os
+    import sys
+    print("Forcing exit to prevent TensorFlow deadlock.")
+    sys.stdout.flush() # 强制输出日志
+    os._exit(0)        # 操作系统级拔电源，绝不给 TF 死锁的机会
 
 
