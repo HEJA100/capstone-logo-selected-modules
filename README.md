@@ -1,168 +1,117 @@
-# Languse of Genome (LOGO)
+# Capstone LOGO Selected Modules
 
-This repository contains code and pre-trained weights for ALBERT genome language models from MGI, ALBERT genome language models were introduced in our paper, [Integrating convolution and self-attention improves language model of human genome for interpreting non-coding regions at base-resolution, ***Nucleic Acids Research*** (Meng Y, Lichao H, et al. 2022)](https://doi.org/10.1093/nar/gkac326).
+This repository contains the curated code used in my BMI5111 Capstone Project at the National University of Singapore (NUS), based on selected modules from the LOGO framework for non-coding genome interpretation.
 
+The project focuses on reproducing and extending representative tasks from the original LOGO study, with emphasis on promoter identification, selected epigenomic / chromatin-feature-related workflows, and non-coding variant prioritization.
 
-## Citation
-```
-@article{Licko2022language,
-  title={Integrating convolution and self-attention improves language model of human genome for interpreting non-coding regions at base-resolution},
-  author={Meng Yang, Lichao Huang, Haiping Huang, Hui Tang, Nan Zhang, Huanming Yang, Jihong Wu, Feng Mu},
-  journal={Nucleic Acid Research},
-  doi={10.1093/nar/gkac326},
-  url={https://doi.org/10.1093/nar/gkac326},
-  year={2022},
-  publisher={Oxford University Press}
-}
-```
+This repository is a **cleaned capstone submission version** rather than a full mirror of the original upstream LOGO repository. Large raw datasets, model checkpoints, TFRecords, logs, and intermediate outputs are intentionally excluded.
 
-## Usage
+---
 
-### Requirement
+## 1. Project Context
 
-```
-## System
-Ubuntu 18.04
-gcc 7.5.0
+LOGO is a deep learning / genome language model framework designed for interpretation of non-coding genomic sequences. The original work combines transformer-style language modeling ideas with convolutional and task-specific prediction modules to improve sequence representation learning and functional interpretation in the non-coding genome.
 
-## Conda environment
-cudatoolkit               10.0.130                      0    defaults
-cudnn                     7.6.5                cuda10.0_0    defaults
-...
-keras                     2.3.1                         0    defaults
-keras-applications        1.0.8                      py_1    defaults
-keras-base                2.3.1                    py36_0    defaults
-keras-preprocessing       1.1.2              pyhd3eb1b0_0    defaults
-pandas                    1.1.5            py36ha9443f7_0    defaults
-python                    3.6.9                h265db76_0    defaults
-...
-tensorflow                2.0.0           gpu_py36h6b29c10_0    defaults
-tensorflow-base           2.0.0           gpu_py36h0ec5d1f_0    defaults
-tensorflow-estimator      2.0.0              pyh2649769_0    defaults
-tensorflow-gpu            2.0.0                h0d30ee6_0    defaults
+In this capstone project, I did not attempt to package the entire upstream LOGO repository as-is. Instead, I focused on a set of selected modules that were most relevant to my project scope and report writing. The main purpose of this repository is therefore to present a **selected-module reproduction and extension effort** in a form that is concise, reviewable, and aligned with the capstone submission.
 
-```
+The code retained here reflects the parts of the LOGO framework that I actually worked with for:
+- reproduction,
+- selected follow-up experiments,
+- code organization,
+- report-aligned interpretation,
+- and academic submission.
 
+---
 
+## 2. Upstream Reference
 
-### Installation
+This capstone work is based on the LOGO framework introduced in:
 
-As a prerequisite, you must have Tensorfolw-gpu 2.0.0 installed to use this repository.
+**Meng Y, Huang L, Huang H, Tang H, Zhang N, Yang H, Wu J, Mu F.**  
+*Integrating convolution and self-attention improves language model of human genome for interpreting non-coding regions at base-resolution.*  
+*Nucleic Acids Research* (2022).  
+https://doi.org/10.1093/nar/gkac326
 
-You can use this three-liner for installation:
+Original upstream repository:  
+https://github.com/melobio/LOGO
 
-```shell
-conda create --name logo python==3.6.9 tensorflow-gpu==2.0 keras==2.3.1 numpy pandas tqdm scipy scikit-learn matplotlib jupyter notebook nb_conda
-source activate logo
-pip install biopython==1.68
-```
+This repository should therefore be understood as a **capstone-oriented, selected-module code release derived from the upstream LOGO project**, not as a replacement for the original official repository.
 
+---
 
+## 3. Purpose of This Repository
 
-## Pre-training model
+The purpose of this repository is to provide a clean and academically reviewable code snapshot for my capstone project.
 
-Check out the file “01_Pre-training_Model/README.txt”
+More specifically, this repository is intended to:
+1. document the selected LOGO modules used in my project;
+2. preserve the scripts relevant to my reproduction work;
+3. retain selected extensions and experiment scripts developed during the capstone;
+4. keep the project lightweight enough for GitHub-based academic review;
+5. align the code release with the methodological scope discussed in the capstone report.
 
-```shell
-1. Download fasta file
-From https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.25_GRCh37.p13/ Download GCF_000001405.25_GRCh37.p13_genomic.fna.gz. And then unzip to ./data/hg19/GCF_000001405.25_GRCh37.p13_genomic.fna
+Because of this submission-oriented goal, the repository is intentionally narrower than the full upstream project and focuses on the modules, scripts, and utilities most relevant to the work I actually carried out.
 
-2. To generate ref sequence, about 15G of space is required:
-python 00_generate_refseq_sequence.py \
-  --data ../data/hg19/GCF_000001405.25_GRCh37.p13_genomic.fna \
-  --output ../data/hg19/train_5_gram \
-  --chunk-size 10000 \
-  --seq-size 1000 \
-  --seq-stride 100 \
-  --ngram 5 \
-  --stride 1 \
-  --slice-size 100000 \
-  --hg-name hg19 \
-  --pool-size 32
+---
 
-3. To generate tfrecord, about 237G of space is required (different kmer requires slightly different storage space, kmer=3, 4, 5, 6):
-python 01_generate_DNA_refseq_tfrecord.py \
-  --output /data/hg19/train_5_gram \
-  --output /data/hg19/train_5_gram_tfrecord \
-  --chunk-size 10000 \
-  --seq-size 1000 \
-  --seq-stride 100 \
-  --ngram 5 \
-  --stride 1 \
-  --slice-size 100000 \
-  --hg-name hg19 \
-  --pool-size 32
+## 4. Scope of the Capstone Work
 
-4. Perform DNA sequence pre-training, respectively (kmer=3,4,5,6, perform training):
-CUDA_VISIBLE_DEVICES=0,1,2,3 python 02_train_gene_transformer_lm_hg_bert4keras_tfrecord.py \
-  --save ../data \
-  --train-data ../data/hg19/train_5_gram_tfrecord \
-  --seq-len 1000 \
-  --model-dim 256 \
-  --transformer-depth 2 \
-  --num-heads 8 \
-  --batch-size 256 \
-  --ngram 5 \
-  --stride 5 \
-  --model-name genebert_5_gram_2_layer_8_heads_256_dim \
-  --steps-per-epoch 4000 \
-  --shuffle-size 4000
-```
+This capstone project focuses on selected LOGO-related tasks for non-coding genome interpretation, especially those that are representative of sequence understanding and downstream functional interpretation.
 
+The core scope covered by this repository includes:
 
+### 4.1 Promoter Identification
+A major part of the project focused on LOGO-based promoter prediction. This includes scripts related to promoter classification across different promoter subsets such as:
+- BOTH
+- TATA_BOX
+- NO_TATA_BOX
 
-## Promoter Prediction
+This part of the repository also retains capstone-specific experiment scripts associated with:
+- sequence-oriented settings,
+- knowledge-enabled settings,
+- knowledge-related ablation variants,
+- locality-related architectural variants,
+- selected comparison-oriented workflows for promoter modeling.
 
-Check out the file “02_LOGO_Promoter/README.txt”
+### 4.2 Selected Epigenomic / Chromatin-feature-related Workflows
+This repository also retains selected scripts from epigenomic and chromatin-feature-related workflows. These are included because they were part of the broader selected-module exploration and help document how LOGO-style sequence modeling connects to downstream functional prediction tasks.
 
-```shell
-1. Data preparation
-- Download GCF_000001405.39_GRCh38.p13_genomic.gff from https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.39_GRCh38.p13/GCF_000001405.39_GRCh38.p13_genomic.gff.gz
-  And unzip it to /data/hg38/GCF_000001405.39_GRCh38.p13_genomic.gff
+### 4.3 Non-coding Variant Prioritization
+Another important part of the project concerns selected scripts for non-coding variant prioritization. These scripts are included as part of the capstone reproduction and code organization effort, especially for selected C2P-style or related workflows derived from the LOGO framework.
 
-- Download the file epdnew from https://epd.epfl.ch/EPD_download.php, which are BOTH, TATA_BOX, NO_TATA_BOX, and generate tfrecord,
-  python 00_EPDnew_data_prepare.py
+---
 
-2. Make Promoter predictions
-- python 01_PromID_trainer.py
+## 5. Capstone-specific Contributions
 
-3. Make Promoter + knowledge prediction
-- python 02_PromID_trainer_knowledge.py
+Compared with the upstream LOGO repository, this capstone repository emphasizes the parts that were actually used for my own reproduction, analysis, and report writing.
 
-4. Promoter prediction results
-- 03_LOGO_Promoter_Prediction_Result.xlsx
-```
+The capstone-specific work reflected here mainly includes:
 
+- organizing selected LOGO modules into a cleaner project structure for academic submission;
+- reproducing selected promoter identification and variant prioritization workflows;
+- preserving promoter-related experiment scripts for focused ablation-style comparisons;
+- retaining selected scripts related to chromatin / epigenomic workflows;
+- packaging only the code files needed for review, rather than the full original large-scale project artifacts.
 
+In particular, the promoter-related part of the repository reflects a more focused experimental exploration than a simple one-to-one copy of the upstream code. It includes scripts associated with:
+- knowledge-related promoter experiments,
+- locality-related promoter experiments,
+- selected architecture and comparison-oriented experiment organization.
 
-## Promoter and Enhancer Interactions Prediction
+This means that the repository not only reflects reproduction of selected upstream functionality, but also the capstone-specific process of narrowing, organizing, and extending those selected components for a more coherent project narrative.
 
-Check out the file “03_LOGO_EPI/README.txt”
+---
 
+## 6. Repository Structure
 
+The main repository structure is shown below:
 
-## Chromatin Feature
-
-Check out the file “04_LOGO_Chromatin_feature/README.txt”
-
-1. script
-
-* 04_LOGO_Chrom_919: The program code of LOGO-919, which can be used to reproduce the results of Fig 3, see its corresponding readme file for details
-* 04_LOGO_Chrom_predict: The prediction program of LOGO-919/2002/3357, used to reproduce the results  in the Fig 4A and Table 1
-
-2. result
-
-* Demo data can be used to test the validity of the program 
-
-
-
-## Variant Prioritization
-
-Check out the file “05_LOGO_variant_prioritization/README.txt”
-
-
-
-## Pre-training model weights
-
-- 99_PreTrain_Model_Weight
-
+```text
+.
+├── 02_LOGO_Promoter/
+├── 03_LOGO_EPI/
+├── 04_LOGO_Chromatin_Feature/
+├── 05_LOGO_Variant_Prioritization/
+├── bgi/
+├── setup_locality_ablation_jobs.sh
+└── README.md
